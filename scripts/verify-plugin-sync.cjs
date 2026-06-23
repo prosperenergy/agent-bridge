@@ -46,6 +46,54 @@ function run(command, args, options = {}) {
 // extractBuildCommit moved to scripts/bundle-commit.cjs (shared with
 // smoke-pack and the release bump rebuild).
 
+// ── Bundle output is bun-version-sensitive ───────────────────────────────────
+// `bun build` codegen/minification can differ BYTE-FOR-BYTE between bun versions
+// even for identical source. The committed bundles are produced with the pinned
+// version (package.json `packageManager: bun@x.y.z`, mirrored in `.bun-version`).
+// Because `engines.bun` is a `>=` range, a newer-but-allowed bun builds a
+// byte-different bundle that is NOT a real source drift. Detect that case so we
+// never tell a contributor to "commit" pure minifier noise.
+function pinnedBunVersion() {
+  let fromPkg = null;
+  try {
+    const pkg = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf-8"));
+    const match = typeof pkg.packageManager === "string" && pkg.packageManager.match(/^bun@(.+)$/);
+    if (match) fromPkg = match[1].trim();
+  } catch {}
+  let fromFile = null;
+  try {
+    const raw = readFileSync(resolve(repoRoot, ".bun-version"), "utf-8").trim();
+    if (raw) fromFile = raw;
+  } catch {}
+  if (fromPkg && fromFile && fromPkg !== fromFile) {
+    console.warn(
+      `\n⚠ bun version pin mismatch: package.json packageManager=bun@${fromPkg} but .bun-version=${fromFile}. Align the two.`
+    );
+  }
+  return fromPkg || fromFile;
+}
+
+function activeBunVersion() {
+  const res = spawnSync("bun", ["--version"], {
+    cwd: repoRoot,
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  return res.status === 0 && typeof res.stdout === "string" ? res.stdout.trim() : null;
+}
+
+const pinnedBun = pinnedBunVersion();
+const activeBun = activeBunVersion();
+const bunVersionMismatch = Boolean(pinnedBun && activeBun && pinnedBun !== activeBun);
+if (bunVersionMismatch) {
+  console.warn(
+    `\n⚠ Active bun ${activeBun} differs from the pinned build version ${pinnedBun} (.bun-version / packageManager).`
+  );
+  console.warn(
+    "  Bundle bytes are bun-version-sensitive; any diff below is likely minifier drift, not a real source change."
+  );
+}
+
 const tempDir = mkdtempSync(join(tmpdir(), "agentbridge-plugin-sync-"));
 
 try {
@@ -72,7 +120,25 @@ try {
   });
 
   if (changedBundles.length > 0) {
-    console.error("\nPlugin bundles are out of sync with source. Run `bun run build:plugin` and commit the updated files:");
+    if (bunVersionMismatch) {
+      console.error(
+        `\nPlugin bundle(s) differ, but you are on bun ${activeBun}, not the pinned build version ${pinnedBun}.`
+      );
+      console.error(
+        "This is almost certainly bun-minifier drift, NOT a real source change — do NOT commit a rebuild from this bun."
+      );
+      console.error(
+        `Switch to bun ${pinnedBun} (see .bun-version; a version manager like proto/mise/asdf picks it up), then re-run:`
+      );
+      console.error("  bun run verify:plugin-sync");
+      console.error(
+        "If it STILL differs on the pinned bun, it is a real drift — run `bun run build:plugin` and commit:"
+      );
+    } else {
+      console.error(
+        "\nPlugin bundles are out of sync with source. Run `bun run build:plugin` and commit the updated files:"
+      );
+    }
     for (const bundle of changedBundles) {
       console.error(`- ${bundle.label}`);
     }
