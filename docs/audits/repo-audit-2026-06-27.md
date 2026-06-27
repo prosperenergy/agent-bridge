@@ -72,7 +72,7 @@
 4. **文档缺口（治理层）**：未见依赖更新策略文档（如自动升级频率、风险分级、审批规则）。
 
 ## 7) 优先级改进建议（Top 5, prioritized）
-1. **P1：为 Actions 关键步骤改为 pin 到 commit SHA**（先从 `checkout/setup-node/setup-bun` 开始），降低供应链漂移风险。  
+1. **P1：为 Actions 关键步骤改为 pin 到 commit SHA**（先从 `actions/checkout`、`actions/setup-node`、`oven-sh/setup-bun` 开始），降低供应链漂移风险。  
 2. **P1：补充发布失败 Runbook**（新增 `docs/` 运维文档，覆盖 `RELEASE_PAT/NPM_TOKEN`、tag/release不一致、registry 传播延迟等场景）。  
 3. **P2：将 Windows 端口清理作业设定“转正门槛”**（连续稳定后移除 `continue-on-error`），提高跨平台回归拦截能力。  
 4. **P2：建立依赖治理机制**（Dependabot/Renovate + 安全扫描 + 例行升级窗口），减少长期技术债与漏洞暴露窗口。  
