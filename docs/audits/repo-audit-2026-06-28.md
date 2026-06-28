@@ -7,9 +7,14 @@
 - CI/CD 与发布链路
 - 当前健康状况、主要风险、缺失测试/文档
 
+## 审计方法
+
+- 依据仓库内现有文档、脚本、工作流与测试目录进行静态审阅。
+- 尝试执行 `bun install --frozen-lockfile && bun run typecheck && bun test src` 做本地校验，但依赖下载阶段出现多项 `ConnectionRefused` / `FailedToOpenSocket`，因此本次健康结论以静态审阅为主。
+
 ## 一句话结论
 
-这是一个用 Bun + TypeScript 构建的本地双进程桥接工具，用来在同一工作会话中连接 Claude Code 与 Codex；整体测试与发布链路设计较完整，但当前存在若干文档漂移、发布依赖人工密钥、以及平台覆盖仍处于过渡态的风险点。参考：`README.md:8-15`, `README.md:31-39`, `README.md:41-73`, `.github/workflows/ci.yml:19-109`, `.github/workflows/release-on-merge.yml:22-142`, `.github/workflows/publish.yml:1-187`。
+这是一个用 Bun + TypeScript 构建的本地双进程桥接工具；整体测试与发布链路较完整，但文档同步、发布运维依赖与平台门禁成熟度仍有改进空间。参考：`README.md:8-15`, `README.md:41-73`, `.github/workflows/ci.yml:19-109`, `.github/workflows/release-on-merge.yml:22-142`, `.github/workflows/publish.yml:1-187`。
 
 ## 仓库用途
 
@@ -28,7 +33,6 @@
 - 包管理器与运行时固定为 Bun，`packageManager` 为 `bun@1.3.11`，并通过 `engines.bun >=1.3.11` 约束版本。参考：`package.json:5-8`。
 - 顶层开发依赖较少，主要是 `typescript`、`@types/bun`、`@modelcontextprotocol/sdk`。参考：`package.json:65-68`。
 - 常用校验命令已经沉淀到脚本：`typecheck`、`test`、`check`、`smoke:built`、`smoke:pack`。参考：`package.json:23-44`。
-- README/CONTRIBUTING 仍将 Bun 前置条件写成 `v1.0+`，与实际最低要求 `>=1.3.11` 不一致。参考：`README.md:77-83`, `CONTRIBUTING.md:5-10`, `package.json:5-8`, `.github/workflows/ci.yml:29-32`, `.github/workflows/ci.yml:69-72`。
 
 ## CI/CD 与发布链路
 
@@ -48,8 +52,6 @@
   - 测试分层清晰：`CONTRIBUTING.md` 明确区分 unit 与 integration/E2E，仓库中可见大量 `src/unit-test/*.test.ts` 与 `src/integration-test/*.test.ts`。参考：`CONTRIBUTING.md:48-53`。
   - 发布链路有重复门禁：merge 前后、publish 前均会再次执行校验，降低错误产物发布概率。参考：`.github/workflows/release-on-merge.yml:98-126`, `.github/workflows/publish.yml:21-37`。
   - 安全文档明确强调本地环回通信、Research Preview 信任边界与漏洞提交流程。参考：`SECURITY.md:3-30`。
-- **限制**
-  - 本次在沙箱内尝试执行 `bun install --frozen-lockfile && bun run typecheck && bun test src`，但依赖下载阶段出现多项 `ConnectionRefused` / `FailedToOpenSocket`，因此无法在当前环境完成本地校验。
 
 ## 主要风险
 
@@ -68,7 +70,7 @@
 ## 缺失测试 / 文档
 
 - **缺失的文档校准**：`README.md`、`CONTRIBUTING.md`、`docs/RELEASING.md` 与当前脚本/工作流之间存在漂移，说明“文档随行为变更同步更新”的约束还没有被流程化执行。参考：`CONTRIBUTING.md:33-46`, `CONTRIBUTING.md:62`, `README.md:77-83`, `docs/RELEASING.md:79-89`。
-- **缺失的依赖维护自动化**：本次审计未发现 `.github/dependabot.yml`；当前仓库缺少显式的依赖更新节奏声明或自动化入口。
+- **缺失的依赖维护自动化**：本次审计仅发现 `ci.yml`、`release-on-merge.yml`、`auto-release.yml`、`publish.yml` 四个工作流，未发现 `.github/dependabot.yml`；当前仓库缺少显式的依赖更新节奏声明或自动化入口。参考：`.github/workflows/ci.yml:1-109`, `.github/workflows/release-on-merge.yml:1-142`, `.github/workflows/auto-release.yml:1-93`, `.github/workflows/publish.yml:1-187`。
 - **缺失的离线/受限网络校验说明**：贡献文档要求本地运行 Bun 校验，但没有说明当依赖拉取受限时的替代验证路径。参考：`CONTRIBUTING.md:37-46`。
 
 ## 5 条优先级最高的建议
