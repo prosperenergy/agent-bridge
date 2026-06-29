@@ -226,6 +226,42 @@ describe("maybeNotifyUpdate — interactive prompt", () => {
     expect(readCacheFile(sd).dismissedVersion).toBeUndefined();
   });
 
+  test("timed out prompt keeps the version eligible for a future prompt", async () => {
+    const sd = freshStateDir();
+    writeCacheFile(sd, { lastCheckMs: 1, latest: "0.2.0" });
+    const firstOut: string[] = [];
+
+    const decision = await maybeNotifyUpdate({
+      current: "0.1.6",
+      stateDir: sd,
+      isTTY: true,
+      inputIsTTY: true,
+      env: CLEAN_ENV,
+      print: (m) => firstOut.push(m),
+      promptUpdate: async () => "timeout",
+    });
+
+    expect(decision).toBe("continue");
+    expect(firstOut).toHaveLength(1);
+    expect(readCacheFile(sd).dismissedVersion).toBeUndefined();
+
+    let promptedAgain = 0;
+    await maybeNotifyUpdate({
+      current: "0.1.6",
+      stateDir: sd,
+      isTTY: true,
+      inputIsTTY: true,
+      env: CLEAN_ENV,
+      print: () => {},
+      promptUpdate: async () => {
+        promptedAgain++;
+        return false;
+      },
+    });
+
+    expect(promptedAgain).toBe(1);
+  });
+
   test("failed confirmed update warns and continues without dismissing the version", async () => {
     const sd = freshStateDir();
     writeCacheFile(sd, { lastCheckMs: 1, latest: "0.2.0" });

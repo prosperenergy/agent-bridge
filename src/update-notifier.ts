@@ -61,6 +61,7 @@ export interface UpdateInstallResult {
 }
 
 export type UpdateInstaller = (cmd: string, args: string[]) => UpdateInstallResult;
+export type UpdatePromptDecision = boolean | "timeout";
 
 export interface NotifierDeps {
   /** Installed version. Defaults to the build-time package version. */
@@ -77,7 +78,7 @@ export interface NotifierDeps {
   /** Whether stdin can be used for an interactive prompt (defaults to stdin.isTTY). */
   inputIsTTY?: boolean;
   promptTimeoutMs?: number;
-  promptUpdate?: (opts: { current: string; latest: string; timeoutMs: number }) => Promise<boolean>;
+  promptUpdate?: (opts: { current: string; latest: string; timeoutMs: number }) => Promise<UpdatePromptDecision>;
   installUpdate?: UpdateInstaller;
 }
 
@@ -204,12 +205,14 @@ function defaultInstallUpdate(cmd: string, args: string[]): UpdateInstallResult 
   return { ok: res.status === 0, status: res.status };
 }
 
-function defaultPromptUpdate(opts: { current: string; latest: string; timeoutMs: number }): Promise<boolean> {
+function defaultPromptUpdate(
+  opts: { current: string; latest: string; timeoutMs: number },
+): Promise<UpdatePromptDecision> {
   return new Promise((resolve) => {
     const rl = createInterface({ input: process.stdin, output: process.stderr });
     let settled = false;
     let timer: ReturnType<typeof setTimeout>;
-    const finish = (answer: boolean) => {
+    const finish = (answer: UpdatePromptDecision) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -218,7 +221,7 @@ function defaultPromptUpdate(opts: { current: string; latest: string; timeoutMs:
     };
     timer = setTimeout(() => {
       process.stderr.write("\n");
-      finish(false);
+      finish("timeout");
     }, opts.timeoutMs);
     timer.unref?.();
     rl.question(`Update AgentBridge now? [y/N] `, (answer) => {
@@ -261,13 +264,13 @@ export async function maybeNotifyUpdate(deps: NotifierDeps = {}): Promise<Update
         print(buildUpdateNotice(current, cache.latest, isTTY));
         if (!updatePromptDisabled(env) && inputIsTTY) {
           const promptUpdate = deps.promptUpdate ?? defaultPromptUpdate;
-          let accepted = false;
+          let promptDecision: UpdatePromptDecision = false;
           try {
-            accepted = await promptUpdate({ current, latest: cache.latest, timeoutMs: promptTimeoutMs });
+            promptDecision = await promptUpdate({ current, latest: cache.latest, timeoutMs: promptTimeoutMs });
           } catch {
-            accepted = false;
+            promptDecision = false;
           }
-          if (accepted) {
+          if (promptDecision === true) {
             const installUpdate = deps.installUpdate ?? defaultInstallUpdate;
             const cmd = "npm";
             const args = ["install", "-g", `${PACKAGE_NAME}@latest`];
@@ -283,7 +286,7 @@ export async function maybeNotifyUpdate(deps: NotifierDeps = {}): Promise<Update
                 ? ` (exit ${result.status})`
                 : "";
             print(`⚠ AgentBridge update failed${detail}; continuing with the current command.`);
-          } else {
+          } else if (promptDecision === false) {
             recordDismissal(stateDir, cache, cache.latest);
           }
         }
