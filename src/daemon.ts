@@ -108,16 +108,16 @@ const configService = new ConfigService();
 // instead of silently reverting custom budget/idle thresholds to defaults.
 const config = configService.loadOrDefault(processLogger.log);
 
-const CODEX_APP_PORT = parseInt(process.env.CODEX_WS_PORT ?? String(config.codex.appPort), 10);
-const CODEX_PROXY_PORT = parseInt(process.env.CODEX_PROXY_PORT ?? String(config.codex.proxyPort), 10);
-const CONTROL_PORT = parseInt(process.env.AGENTBRIDGE_CONTROL_PORT ?? "4502", 10);
-const TUI_DISCONNECT_GRACE_MS = parseInt(process.env.TUI_DISCONNECT_GRACE_MS ?? "2500", 10);
+const CODEX_APP_PORT = parsePositiveIntEnv("CODEX_WS_PORT", config.codex.appPort, log);
+const CODEX_PROXY_PORT = parsePositiveIntEnv("CODEX_PROXY_PORT", config.codex.proxyPort, log);
+const CONTROL_PORT = parsePositiveIntEnv("AGENTBRIDGE_CONTROL_PORT", 4502, log);
+const TUI_DISCONNECT_GRACE_MS = parsePositiveIntEnv("TUI_DISCONNECT_GRACE_MS", 2500, log);
 const CLAUDE_DISCONNECT_GRACE_MS = 5_000;
-const MAX_BUFFERED_MESSAGES = parseInt(process.env.AGENTBRIDGE_MAX_BUFFERED_MESSAGES ?? "100", 10);
+const MAX_BUFFERED_MESSAGES = parsePositiveIntEnv("AGENTBRIDGE_MAX_BUFFERED_MESSAGES", 100, log);
 const FILTER_MODE: FilterMode =
   (process.env.AGENTBRIDGE_FILTER_MODE as FilterMode) === "full" ? "full" : "filtered";
-const IDLE_SHUTDOWN_MS = parseInt(process.env.AGENTBRIDGE_IDLE_SHUTDOWN_MS ?? String(config.idleShutdownSeconds * 1000), 10);
-const ATTENTION_WINDOW_MS = parseInt(process.env.AGENTBRIDGE_ATTENTION_WINDOW_MS ?? String(config.turnCoordination.attentionWindowSeconds * 1000), 10);
+const IDLE_SHUTDOWN_MS = parsePositiveIntEnv("AGENTBRIDGE_IDLE_SHUTDOWN_MS", config.idleShutdownSeconds * 1000, log);
+const ATTENTION_WINDOW_MS = parsePositiveIntEnv("AGENTBRIDGE_ATTENTION_WINDOW_MS", config.turnCoordination.attentionWindowSeconds * 1000, log);
 // Bootstrap-readiness watchdog: if the Codex layer never becomes ready within this
 // window the daemon self-exits to release its control port (prevents the
 // healthz-200/readyz-503 zombie). Default 45s is deliberately > the worst-case
