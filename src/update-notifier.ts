@@ -268,7 +268,7 @@ export async function maybeNotifyUpdate(deps: NotifierDeps = {}): Promise<Update
           try {
             promptDecision = await promptUpdate({ current, latest: cache.latest, timeoutMs: promptTimeoutMs });
           } catch {
-            promptDecision = false;
+            promptDecision = "timeout";
           }
           if (promptDecision === true) {
             const installUpdate = deps.installUpdate ?? defaultInstallUpdate;

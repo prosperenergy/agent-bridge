@@ -262,6 +262,25 @@ describe("maybeNotifyUpdate — interactive prompt", () => {
     expect(promptedAgain).toBe(1);
   });
 
+  test("prompt errors keep the version eligible for a future prompt", async () => {
+    const sd = freshStateDir();
+    writeCacheFile(sd, { lastCheckMs: 1, latest: "0.2.0" });
+
+    await maybeNotifyUpdate({
+      current: "0.1.6",
+      stateDir: sd,
+      isTTY: true,
+      inputIsTTY: true,
+      env: CLEAN_ENV,
+      print: () => {},
+      promptUpdate: async () => {
+        throw new Error("prompt failed");
+      },
+    });
+
+    expect(readCacheFile(sd).dismissedVersion).toBeUndefined();
+  });
+
   test("failed confirmed update warns and continues without dismissing the version", async () => {
     const sd = freshStateDir();
     writeCacheFile(sd, { lastCheckMs: 1, latest: "0.2.0" });
