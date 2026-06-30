@@ -61,7 +61,7 @@ export interface UpdateInstallResult {
 }
 
 export type UpdateInstaller = (cmd: string, args: string[]) => UpdateInstallResult;
-export type UpdatePromptDecision = boolean | "timeout";
+export type UpdatePromptOutcome = boolean | "timeout";
 
 export interface NotifierDeps {
   /** Installed version. Defaults to the build-time package version. */
@@ -78,7 +78,7 @@ export interface NotifierDeps {
   /** Whether stdin can be used for an interactive prompt (defaults to stdin.isTTY). */
   inputIsTTY?: boolean;
   promptTimeoutMs?: number;
-  promptUpdate?: (opts: { current: string; latest: string; timeoutMs: number }) => Promise<UpdatePromptDecision>;
+  promptUpdate?: (opts: { current: string; latest: string; timeoutMs: number }) => Promise<UpdatePromptOutcome>;
   installUpdate?: UpdateInstaller;
 }
 
@@ -207,12 +207,12 @@ function defaultInstallUpdate(cmd: string, args: string[]): UpdateInstallResult 
 
 function defaultPromptUpdate(
   opts: { current: string; latest: string; timeoutMs: number },
-): Promise<UpdatePromptDecision> {
+): Promise<UpdatePromptOutcome> {
   return new Promise((resolve) => {
     const rl = createInterface({ input: process.stdin, output: process.stderr });
     let settled = false;
     let timer: ReturnType<typeof setTimeout>;
-    const finish = (answer: UpdatePromptDecision) => {
+    const finish = (answer: UpdatePromptOutcome) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -264,7 +264,7 @@ export async function maybeNotifyUpdate(deps: NotifierDeps = {}): Promise<Update
         print(buildUpdateNotice(current, cache.latest, isTTY));
         if (!updatePromptDisabled(env) && inputIsTTY) {
           const promptUpdate = deps.promptUpdate ?? defaultPromptUpdate;
-          let promptDecision: UpdatePromptDecision = false;
+          let promptDecision: UpdatePromptOutcome = false;
           try {
             promptDecision = await promptUpdate({ current, latest: cache.latest, timeoutMs: promptTimeoutMs });
           } catch {

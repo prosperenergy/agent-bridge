@@ -245,7 +245,7 @@ describe("maybeNotifyUpdate — interactive prompt", () => {
     expect(firstOut).toHaveLength(1);
     expect(readCacheFile(sd).dismissedVersion).toBeUndefined();
 
-    let promptedAgain = 0;
+    let promptCount = 0;
     await maybeNotifyUpdate({
       current: "0.1.6",
       stateDir: sd,
@@ -254,12 +254,12 @@ describe("maybeNotifyUpdate — interactive prompt", () => {
       env: CLEAN_ENV,
       print: () => {},
       promptUpdate: async () => {
-        promptedAgain++;
+        promptCount++;
         return false;
       },
     });
 
-    expect(promptedAgain).toBe(1);
+    expect(promptCount).toBe(1);
     expect(readCacheFile(sd).dismissedVersion).toBe("0.2.0");
   });
 
