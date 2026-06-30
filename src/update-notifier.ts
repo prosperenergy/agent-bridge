@@ -288,6 +288,8 @@ export async function maybeNotifyUpdate(deps: NotifierDeps = {}): Promise<Update
             print(`⚠ AgentBridge update failed${detail}; continuing with the current command.`);
           } else if (promptDecision === false) {
             recordDismissal(stateDir, cache, cache.latest);
+          } else {
+            // Timeouts and prompt failures intentionally keep the version eligible.
           }
         }
       }
