@@ -260,6 +260,7 @@ describe("maybeNotifyUpdate — interactive prompt", () => {
     });
 
     expect(promptedAgain).toBe(1);
+    expect(readCacheFile(sd).dismissedVersion).toBe("0.2.0");
   });
 
   test("prompt errors keep the version eligible for a future prompt", async () => {
