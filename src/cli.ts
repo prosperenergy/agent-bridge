@@ -119,6 +119,10 @@ async function main(command: string | undefined, restArgs: string[]) {
       const { runLogs } = await import("./cli/logs");
       await runLogs(restArgs);
       break;
+    case "ps":
+      const { runPs } = await import("./cli/ps");
+      await runPs(restArgs);
+      break;
     case "--help":
     case "-h":
     case undefined:
@@ -166,6 +170,8 @@ Commands:
   logs [--codex] [-f] [-n N]
                      Tail this pair's daemon log (or the codex wrapper log with
                      --codex). -n N: last N lines (default 100). -f: follow/stream.
+  ps [--json]        List running codex/claude/hermes/agent/ollama processes
+                     (pid, %CPU, %MEM, elapsed, command), longest-running first
   kill [all | --all | --pair <name|id>]
                      Stop this directory's pairs (default), every pair (all/--all), or one (--pair)
 
@@ -208,6 +214,8 @@ Examples:
   ${cli} logs -f -n 200           # Follow the log, starting from the last 200 lines
   ${cli} logs --codex             # Tail the codex wrapper log instead
   ${cli} --pair work logs         # Tail the "work" pair's daemon log
+  ${cli} ps                       # List codex/claude/hermes/agent/ollama processes
+  ${cli} ps --json                # ...as JSON instead of a table
   ${cli} pairs rm work            # Stop this directory's "work" pair and free its slot
   ${cli} pairs rm work-1a2b3c4d   # ...or by its full id (from that pair's directory)
   ${cli} pairs prune              # Preview reclaimable: orphan dirs + stranded entries (cwd-gone, dead, >1d)
