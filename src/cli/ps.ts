@@ -6,17 +6,22 @@ import {
 } from "../process-monitor";
 
 export async function runPs(args: string[] = []) {
-  const json = args.includes("--json");
-  const unknown = args.filter((arg) => arg !== "--json" && arg !== "--help" && arg !== "-h" && arg.startsWith("-"));
-  if (args.includes("--help") || args.includes("-h")) {
-    printPsUsage();
-    return;
-  }
+  // Unrecognized-argument check runs FIRST (and catches every non-recognized
+  // token, not just ones starting with "-") so a typo is never silently
+  // swallowed by a co-occurring --help/-h, and a stray positional argument
+  // (e.g. `abg ps json`, forgetting the leading `--`) is never ignored as a
+  // silent no-op.
+  const unknown = args.filter((arg) => arg !== "--json" && arg !== "--help" && arg !== "-h");
   if (unknown.length > 0) {
     console.error(`Unknown ps option(s): ${unknown.join(", ")}`);
     printPsUsage();
     process.exit(1);
   }
+  if (args.includes("--help") || args.includes("-h")) {
+    printPsUsage();
+    return;
+  }
+  const json = args.includes("--json");
 
   let entries: ProcessMonitorEntry[];
   try {

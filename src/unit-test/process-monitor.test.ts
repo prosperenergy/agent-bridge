@@ -3,16 +3,43 @@ import {
   AGENT_PROCESS_PATTERN,
   filterAgentProcesses,
   formatElapsed,
+  parseEtimeToSeconds,
   parsePsMonitorOutput,
   sortByElapsedDesc,
   type ProcessMonitorEntry,
 } from "../process-monitor";
 
+describe("parseEtimeToSeconds", () => {
+  test("parses mm:ss", () => {
+    expect(parseEtimeToSeconds("9:00")).toBe(540);
+    expect(parseEtimeToSeconds("09:00")).toBe(540);
+  });
+
+  test("parses h:mm:ss", () => {
+    expect(parseEtimeToSeconds("1:02:03")).toBe(3723);
+  });
+
+  test("parses dd-hh:mm:ss", () => {
+    expect(parseEtimeToSeconds("2-03:04:05")).toBe(2 * 86400 + 3 * 3600 + 4 * 60 + 5);
+  });
+
+  test("returns null for an unparseable value", () => {
+    expect(parseEtimeToSeconds("not-a-time")).toBeNull();
+    expect(parseEtimeToSeconds("1:2:3:4")).toBeNull();
+    expect(parseEtimeToSeconds("")).toBeNull();
+  });
+});
+
 describe("parsePsMonitorOutput", () => {
-  test("parses pid/pcpu/pmem/etimes/command columns", () => {
+  test("parses pid/pcpu/pmem/etime/command columns (portable etime, not GNU-only etimes)", () => {
+    // etime is `ps -Ao pid=,pcpu=,pmem=,etime=,command=`'s real output shape —
+    // GNU procps and BSD/macOS ps BOTH support etime; only GNU supports the
+    // etimes (plural) integer-seconds keyword, which macOS's ps rejects
+    // outright. Feeding etime strings here (not raw integers) is the
+    // regression coverage for that platform bug.
     const entries = parsePsMonitorOutput(`
-      101  12.5   2.2   540  /usr/bin/codex --enable tui_app_server
-      102   0.0   0.1  3661  /bin/sh -c echo hello
+      101  12.5   2.2   9:00  /usr/bin/codex --enable tui_app_server
+      102   0.0   0.1  1:01:01  /bin/sh -c echo hello
     `);
     expect(entries).toEqual([
       { pid: 101, cpuPercent: 12.5, memPercent: 2.2, elapsedSeconds: 540, command: "/usr/bin/codex --enable tui_app_server" },
@@ -22,6 +49,10 @@ describe("parsePsMonitorOutput", () => {
 
   test("skips unparseable lines", () => {
     expect(parsePsMonitorOutput("\n   \nnot a process line\n")).toEqual([]);
+  });
+
+  test("skips a line whose etime column is unparseable", () => {
+    expect(parsePsMonitorOutput("101  0.0  0.0  garbage  /usr/bin/codex")).toEqual([]);
   });
 });
 
@@ -45,10 +76,28 @@ describe("filterAgentProcesses", () => {
     expect(filterAgentProcesses(entries, { pattern: /vim/ })).toEqual([entries[2]!]);
   });
 
-  test("default pattern matches the documented AGENT_PROCESS_PATTERN", () => {
+  test("default pattern matches standalone agent-family tokens", () => {
     expect(AGENT_PROCESS_PATTERN.test("hermes-bridge")).toBe(true);
     expect(AGENT_PROCESS_PATTERN.test("agent-daemon")).toBe(true);
     expect(AGENT_PROCESS_PATTERN.test("nginx")).toBe(false);
+  });
+
+  test("word-boundary anchoring excludes this project's own agentbridge processes", () => {
+    // Regression test: an EARLIER unanchored version of this pattern matched
+    // the bare substring "agent" anywhere, so `abg ps` listed its own
+    // daemon.js/bridge-server.js processes (paths containing "agentbridge")
+    // alongside real codex/claude sessions — defeating the point of the tool.
+    expect(AGENT_PROCESS_PATTERN.test("/usr/bin/bun plugins/agentbridge/server/daemon.js")).toBe(false);
+    expect(AGENT_PROCESS_PATTERN.test("agent_bridge_daemon")).toBe(false);
+    // Compound OS agent names with no separator are excluded too.
+    expect(AGENT_PROCESS_PATTERN.test("/System/Library/CoreServices/UserEventAgent")).toBe(false);
+  });
+
+  test("known residual limitation: hyphenated system agents still match", () => {
+    // Documented tradeoff, not a bug: `\b` creates a boundary at a hyphen, so
+    // ssh-agent/gpg-agent still match. Treated as acceptable for a
+    // lightweight keyword lister (see AGENT_PROCESS_PATTERN's doc comment).
+    expect(AGENT_PROCESS_PATTERN.test("/usr/bin/ssh-agent")).toBe(true);
   });
 });
 
