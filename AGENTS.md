@@ -3,7 +3,14 @@
 
 You are working in a **multi-agent environment** powered by AgentBridge.
 Another AI agent (Claude, by Anthropic) is available in a parallel session on this machine.
-Communication happens via AgentBridge MCP tools — Claude has `reply` and `get_messages` tools.
+
+### Communication mechanism (read this first)
+AgentBridge is a **transparent proxy** on your side. You do **not** have a tool to "send a message to Claude".
+
+- **Codex → Claude**: Just write your normal response. The bridge intercepts your `agentMessage` output and forwards it to Claude automatically. No tool call needed.
+- **Claude → Codex**: Claude uses its own MCP tools (`reply` / `get_messages`). Those messages arrive in your session as new user turns — you'll see them like any other user input.
+
+**Do not** search the AgentBridge source for a Codex-side "send" / "reply" / "sendToClaude" API — it does not exist, and looking for it wastes turns. If you catch yourself thinking "I need to find how to message Claude", stop and just write your reply as normal text.
 
 ### When to collaborate vs. work solo
 - **Collaborate** when the task benefits from a second perspective, parallel execution, or capabilities the other agent has.
@@ -21,47 +28,8 @@ Communication happens via AgentBridge MCP tools — Claude has `reply` and `get_
 | File editing & refactoring | Yes (via sandbox) | Yes (via tools) |
 
 ### How to start collaborating
-1. When you receive a complex task, **proactively propose a division of labor**.
+1. When you receive a complex task, **proactively propose a division of labor** in your response (Claude will receive it).
 2. State what you'll handle and what you'd like Claude to take on.
 3. Ask for Claude's agreement or counter-proposal before proceeding.
 4. After task completion, **cross-review** each other's work.
 <!-- AgentBridge:end -->
-
-<!-- code-review-graph MCP tools -->
-## MCP Tools: code-review-graph
-
-**IMPORTANT: This project has a knowledge graph. ALWAYS use the
-code-review-graph MCP tools BEFORE using Grep/Glob/Read to explore
-the codebase.** The graph is faster, cheaper (fewer tokens), and gives
-you structural context (callers, dependents, test coverage) that file
-scanning cannot.
-
-### When to use graph tools FIRST
-
-- **Exploring code**: `semantic_search_nodes` or `query_graph` instead of Grep
-- **Understanding impact**: `get_impact_radius` instead of manually tracing imports
-- **Code review**: `detect_changes` + `get_review_context` instead of reading entire files
-- **Finding relationships**: `query_graph` with callers_of/callees_of/imports_of/tests_for
-- **Architecture questions**: `get_architecture_overview` + `list_communities`
-
-Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
-
-### Key Tools
-
-| Tool | Use when |
-|------|----------|
-| `detect_changes` | Reviewing code changes — gives risk-scored analysis |
-| `get_review_context` | Need source snippets for review — token-efficient |
-| `get_impact_radius` | Understanding blast radius of a change |
-| `get_affected_flows` | Finding which execution paths are impacted |
-| `query_graph` | Tracing callers, callees, imports, tests, dependencies |
-| `semantic_search_nodes` | Finding functions/classes by name or keyword |
-| `get_architecture_overview` | Understanding high-level codebase structure |
-| `refactor_tool` | Planning renames, finding dead code |
-
-### Workflow
-
-1. The graph auto-updates on file changes (via hooks).
-2. Use `detect_changes` for code review.
-3. Use `get_affected_flows` to understand impact.
-4. Use `query_graph` pattern="tests_for" to check coverage.
