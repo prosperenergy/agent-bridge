@@ -2,6 +2,14 @@
 
 Thanks for contributing to AgentBridge.
 
+## Contributor License Agreement
+
+Before your first pull request can be merged, please sign our lightweight
+[Contributor License Agreement](CLA.md). A bot will prompt you on the PR; you
+reply once and all future PRs are covered. The CLA keeps the project's licensing
+options open (e.g. a future commercial edition alongside the open-source one)
+while you keep full ownership of your own contributions.
+
 ## Prerequisites
 
 - [Bun](https://bun.sh) v1.0+
@@ -25,6 +33,11 @@ agentbridge claude  # Start Claude Code with plugin auto-loaded
 ```
 
 After changing plugin or runtime code, run `agentbridge dev` again and restart Claude Code (or `/reload-plugins` in an active session).
+
+> **Committed build artifacts.** The bundles under `plugins/agentbridge/server/*.js` are generated
+> but committed on purpose (the marketplace and `.mcp.json` run them straight from git). After any
+> `src/` change run `bun run build:plugin` and commit the result; on a bundle conflict, rebuild — do
+> not hand-merge. See [docs/adr-bundle-in-git.md](docs/adr-bundle-in-git.md).
 
 ## Development Workflow
 
