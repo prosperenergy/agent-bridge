@@ -78,4 +78,3 @@
 1. **P0（本周）**：处理 `bun audit` 中 HIGH 项（`fast-uri`、`path-to-regexp`）
 2. **P1（本周）**：处理 Hono / Node Server 中危项并复测
 3. **P2（下个迭代）**：收紧 control token 缺失时的降级策略与可观测性
-
