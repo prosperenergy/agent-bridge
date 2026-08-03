@@ -23,6 +23,7 @@ import { randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { createProcessLogger, type ProcessLogger } from "./process-log";
 import { StateDirResolver } from "./state-dir";
+import { parsePositiveIntEnv } from "./env-utils";
 import type { BridgeMessage } from "./types";
 import type { BudgetSnapshot } from "./budget/types";
 import { renderBudgetSnapshot, BUDGET_UNAVAILABLE_TEXT } from "./budget/render";
@@ -157,18 +158,18 @@ export class ClaudeAdapter extends EventEmitter {
     }
     this.maxBufferedMessages = positiveIntegerOr(
       options.maxBufferedMessages,
-      parsePositiveIntegerEnv("AGENTBRIDGE_MAX_BUFFERED_MESSAGES", DEFAULT_MAX_BUFFERED_MESSAGES),
+      parsePositiveIntEnv("AGENTBRIDGE_MAX_BUFFERED_MESSAGES", DEFAULT_MAX_BUFFERED_MESSAGES, this.logger.log),
     );
     this.maxBufferedBytes = positiveIntegerOr(
       options.maxBufferedBytes,
-      parsePositiveIntegerEnv("AGENTBRIDGE_MAX_BUFFERED_BYTES", DEFAULT_MAX_BUFFERED_BYTES),
+      parsePositiveIntEnv("AGENTBRIDGE_MAX_BUFFERED_BYTES", DEFAULT_MAX_BUFFERED_BYTES, this.logger.log),
     );
     this.dedupeCapacity = positiveIntegerOr(options.dedupeCapacity, DEFAULT_DEDUPE_CAPACITY);
     this.dedupeTtlMs = positiveIntegerOr(options.dedupeTtlMs, DEFAULT_DEDUPE_TTL_MS);
     this.monotonicNow = options.now ?? (() => performance.now());
     this.budgetFreshTtlMs = positiveIntegerOr(
       options.budgetFreshTtlMs,
-      parsePositiveIntegerEnv("AGENTBRIDGE_BUDGET_FRESH_TTL_SEC", DEFAULT_BUDGET_FRESH_TTL_MS / 1000) * 1000,
+      parsePositiveIntEnv("AGENTBRIDGE_BUDGET_FRESH_TTL_SEC", DEFAULT_BUDGET_FRESH_TTL_MS / 1000, this.logger.log) * 1000,
     );
     this.wallNow = options.wallNow ?? (() => Date.now());
 
@@ -727,10 +728,6 @@ export class ClaudeAdapter extends EventEmitter {
   private log(msg: string) {
     this.logger.log(msg);
   }
-}
-
-function parsePositiveIntegerEnv(name: string, fallback: number): number {
-  return positiveIntegerOr(parseInt(process.env[name] ?? "", 10), fallback);
 }
 
 function positiveIntegerOr(value: unknown, fallback: number): number {
