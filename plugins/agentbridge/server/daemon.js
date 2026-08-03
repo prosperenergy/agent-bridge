@@ -30,10 +30,10 @@ function defineNumber(value, fallback) {
 }
 var BUILD_INFO = Object.freeze({
   version: defineString("0.1.30", "0.0.0-source"),
-  commit: defineString("99d0f4a", "source"),
+  commit: defineString("21b0a5c", "source"),
   bundle: defineBundle("plugin"),
   contractVersion: defineNumber(1, CONTRACT_VERSION),
-  codeHash: defineString("0cb79932198b", "source")
+  codeHash: defineString("99a56a3044fe", "source")
 });
 function daemonStatusBuildInfo() {
   return { ...BUILD_INFO };
@@ -6598,15 +6598,15 @@ var weWroteToken = false;
 var weWrotePid = false;
 var configService = new ConfigService;
 var config = configService.loadOrDefault(processLogger.log);
-var CODEX_APP_PORT = parseInt(process.env.CODEX_WS_PORT ?? String(config.codex.appPort), 10);
-var CODEX_PROXY_PORT = parseInt(process.env.CODEX_PROXY_PORT ?? String(config.codex.proxyPort), 10);
-var CONTROL_PORT = parseInt(process.env.AGENTBRIDGE_CONTROL_PORT ?? "4502", 10);
-var TUI_DISCONNECT_GRACE_MS = parseInt(process.env.TUI_DISCONNECT_GRACE_MS ?? "2500", 10);
+var CODEX_APP_PORT = parsePositiveIntEnv("CODEX_WS_PORT", config.codex.appPort, log);
+var CODEX_PROXY_PORT = parsePositiveIntEnv("CODEX_PROXY_PORT", config.codex.proxyPort, log);
+var CONTROL_PORT = parsePositiveIntEnv("AGENTBRIDGE_CONTROL_PORT", 4502, log);
+var TUI_DISCONNECT_GRACE_MS = parsePositiveIntEnv("TUI_DISCONNECT_GRACE_MS", 2500, log);
 var CLAUDE_DISCONNECT_GRACE_MS = 5000;
-var MAX_BUFFERED_MESSAGES = parseInt(process.env.AGENTBRIDGE_MAX_BUFFERED_MESSAGES ?? "100", 10);
+var MAX_BUFFERED_MESSAGES = parsePositiveIntEnv("AGENTBRIDGE_MAX_BUFFERED_MESSAGES", 100, log);
 var FILTER_MODE = process.env.AGENTBRIDGE_FILTER_MODE === "full" ? "full" : "filtered";
-var IDLE_SHUTDOWN_MS = parseInt(process.env.AGENTBRIDGE_IDLE_SHUTDOWN_MS ?? String(config.idleShutdownSeconds * 1000), 10);
-var ATTENTION_WINDOW_MS = parseInt(process.env.AGENTBRIDGE_ATTENTION_WINDOW_MS ?? String(config.turnCoordination.attentionWindowSeconds * 1000), 10);
+var IDLE_SHUTDOWN_MS = parsePositiveIntEnv("AGENTBRIDGE_IDLE_SHUTDOWN_MS", config.idleShutdownSeconds * 1000, log);
+var ATTENTION_WINDOW_MS = parsePositiveIntEnv("AGENTBRIDGE_ATTENTION_WINDOW_MS", config.turnCoordination.attentionWindowSeconds * 1000, log);
 var BOOTSTRAP_TIMEOUT_MS = parsePositiveIntEnv("AGENTBRIDGE_BOOTSTRAP_TIMEOUT_MS", 45000);
 var CODEX_BOOT_RETRIES = parsePositiveIntEnv("AGENTBRIDGE_CODEX_BOOT_RETRIES", 2);
 var ALLOW_IDENTITYLESS_CLIENT = process.env.AGENTBRIDGE_COMPAT_IDENTITYLESS === "1";
