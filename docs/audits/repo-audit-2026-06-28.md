@@ -55,16 +55,16 @@
 
 ## 主要风险
 
-1. **文档版本漂移风险**  
+1. **文档版本漂移风险**
    使用说明写的是 Bun `v1.0+`，而包元数据与 CI 实际都要求/固定在 1.3.11 系列；新贡献者容易按 README 成功安装到不满足要求的版本。参考：`README.md:77-83`, `CONTRIBUTING.md:5-10`, `package.json:5-8`, `.github/workflows/ci.yml:29-32`。
 
-2. **发布文档与现实流程不完全一致**  
+2. **发布文档与现实流程不完全一致**
    `docs/RELEASING.md` 仍写着 “PR #90 合入后再把 smoke 加到门禁”，但 `publish.yml` 已经包含 `smoke:built` 与 `smoke:pack`；文档状态落后于仓库现状。参考：`docs/RELEASING.md:79-89`, `.github/workflows/publish.yml:31-37`。
 
-3. **Windows 覆盖仍非硬门禁**  
+3. **Windows 覆盖仍非硬门禁**
    既然仓库已经承认该路径是“本地维护者无法覆盖”的平台专项检查，长期维持 `continue-on-error: true` 会让真实回归被降级为提示而不是阻断。参考：`.github/workflows/ci.yml:85-95`。
 
-4. **发布链路对 secrets 的可用性高度敏感**  
+4. **发布链路对 secrets 的可用性高度敏感**
    当前自动发布完全依赖 `RELEASE_PAT` / `NPM_TOKEN`；虽然工作流有显式失败保护，但仍缺少一眼可见的“例行校验/轮换节奏”说明。参考：`.github/workflows/release-on-merge.yml:41-60`, `.github/workflows/auto-release.yml:14-29`, `.github/workflows/publish.yml:39-47`, `docs/RELEASING.md:38-57`。
 
 ## 缺失测试 / 文档
@@ -75,19 +75,19 @@
 
 ## 5 条优先级最高的建议
 
-1. **P1：统一 Bun 最低版本说明**  
+1. **P1：统一 Bun 最低版本说明**
    立即把 `README.md` 与 `CONTRIBUTING.md` 里的 Bun 前置条件从 `v1.0+` 改成与 `package.json` / CI 一致的 `>=1.3.11`，避免新环境踩坑。参考：`README.md:77-83`, `CONTRIBUTING.md:5-10`, `package.json:5-8`。
 
-2. **P2：修正文档中的发布链路陈旧描述**  
+2. **P2：修正文档中的发布链路陈旧描述**
    更新 `docs/RELEASING.md`，删除“等待 PR #90”这类已过期叙述，并准确反映 `publish.yml` 已经执行 smoke 校验的现状。参考：`docs/RELEASING.md:79-89`, `.github/workflows/publish.yml:31-37`。
 
-3. **P3：为依赖维护建立显式机制**  
+3. **P3：为依赖维护建立显式机制**
    增加 Dependabot 或等价的人工维护节奏文档，尤其针对 Bun/TypeScript/MCP SDK 这类核心开发依赖，降低长期漂移与安全补丁滞后风险。
 
-4. **P4：给 Windows 专项校验设定转正条件**  
+4. **P4：给 Windows 专项校验设定转正条件**
    保留当前 job 不变，但在文档或 issue 中明确“连续多少次稳定通过后转为硬门禁”，避免 `continue-on-error` 无限期停留。参考：`.github/workflows/ci.yml:90-95`。
 
-5. **P5：补一份受限网络环境的贡献说明**  
+5. **P5：补一份受限网络环境的贡献说明**
    在贡献文档中补充“依赖下载失败时的排查顺序 / 是否允许跳过 / 何时依赖 CI 代跑”的说明，减少外部贡献者在受限网络下的无效尝试。参考：`CONTRIBUTING.md:37-46`。
 
 ## 本次变更说明
