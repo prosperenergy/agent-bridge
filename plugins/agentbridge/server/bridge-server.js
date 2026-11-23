@@ -10263,7 +10263,7 @@ function finalize(ctx, schema) {
     result.$schema = "http://json-schema.org/draft-07/schema#";
   } else if (ctx.target === "draft-04") {
     result.$schema = "http://json-schema.org/draft-04/schema#";
-  } else if (ctx.target === "openapi-3.0") {}
+  } else if (ctx.target === "openapi-3.0") {} else {}
   if (ctx.external?.uri) {
     const id = ctx.external.registry.get(schema)?.id;
     if (!id)
@@ -10481,7 +10481,7 @@ var literalProcessor = (schema, ctx, json, _params) => {
     if (val === undefined) {
       if (ctx.unrepresentable === "throw") {
         throw new Error("Literal `undefined` cannot be represented in JSON Schema");
-      }
+      } else {}
     } else if (typeof val === "bigint") {
       if (ctx.unrepresentable === "throw") {
         throw new Error("BigInt literals cannot be represented in JSON Schema");
@@ -14188,6 +14188,19 @@ class StateDirResolver {
   }
 }
 
+// src/env-utils.ts
+function parsePositiveIntEnv(name, fallback, log = () => {}, env = process.env) {
+  const raw = env[name];
+  if (raw == null || raw === "")
+    return fallback;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > Number.MAX_SAFE_INTEGER) {
+    log(`Invalid ${name}=${JSON.stringify(raw)} (must be a positive integer within ` + `Number.MAX_SAFE_INTEGER); falling back to ${fallback}`);
+    return fallback;
+  }
+  return parsed;
+}
+
 // src/budget/format-time.ts
 var BEIJING_TZ = "Asia/Shanghai";
 function parts(epochSeconds, options) {
@@ -14562,12 +14575,12 @@ class ClaudeAdapter extends EventEmitter {
     if (process.env.AGENTBRIDGE_MODE) {
       this.log(`AGENTBRIDGE_MODE="${process.env.AGENTBRIDGE_MODE}" is no longer supported \u2014 ` + "pull mode was removed; push delivery (with per-message fallback queue) is always used.");
     }
-    this.maxBufferedMessages = positiveIntegerOr(options.maxBufferedMessages, parsePositiveIntegerEnv("AGENTBRIDGE_MAX_BUFFERED_MESSAGES", DEFAULT_MAX_BUFFERED_MESSAGES));
-    this.maxBufferedBytes = positiveIntegerOr(options.maxBufferedBytes, parsePositiveIntegerEnv("AGENTBRIDGE_MAX_BUFFERED_BYTES", DEFAULT_MAX_BUFFERED_BYTES));
+    this.maxBufferedMessages = positiveIntegerOr(options.maxBufferedMessages, parsePositiveIntEnv("AGENTBRIDGE_MAX_BUFFERED_MESSAGES", DEFAULT_MAX_BUFFERED_MESSAGES, this.logger.log));
+    this.maxBufferedBytes = positiveIntegerOr(options.maxBufferedBytes, parsePositiveIntEnv("AGENTBRIDGE_MAX_BUFFERED_BYTES", DEFAULT_MAX_BUFFERED_BYTES, this.logger.log));
     this.dedupeCapacity = positiveIntegerOr(options.dedupeCapacity, DEFAULT_DEDUPE_CAPACITY);
     this.dedupeTtlMs = positiveIntegerOr(options.dedupeTtlMs, DEFAULT_DEDUPE_TTL_MS);
     this.monotonicNow = options.now ?? (() => performance.now());
-    this.budgetFreshTtlMs = positiveIntegerOr(options.budgetFreshTtlMs, parsePositiveIntegerEnv("AGENTBRIDGE_BUDGET_FRESH_TTL_SEC", DEFAULT_BUDGET_FRESH_TTL_MS / 1000) * 1000);
+    this.budgetFreshTtlMs = positiveIntegerOr(options.budgetFreshTtlMs, parsePositiveIntEnv("AGENTBRIDGE_BUDGET_FRESH_TTL_SEC", DEFAULT_BUDGET_FRESH_TTL_MS / 1000, this.logger.log) * 1000);
     this.wallNow = options.wallNow ?? (() => Date.now());
     this.server = new Server({ name: "agentbridge", version: "0.1.0" }, {
       capabilities: {
@@ -14985,9 +14998,6 @@ chat_id: ${this.sessionId}`);
     this.logger.log(msg);
   }
 }
-function parsePositiveIntegerEnv(name, fallback) {
-  return positiveIntegerOr(parseInt(process.env[name] ?? "", 10), fallback);
-}
 function positiveIntegerOr(value, fallback) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
 }
@@ -15029,10 +15039,10 @@ function defineNumber(value, fallback) {
 }
 var BUILD_INFO = Object.freeze({
   version: defineString("0.1.30", "0.0.0-source"),
-  commit: defineString("21b0a5c", "source"),
+  commit: defineString("348fe00", "source"),
   bundle: defineBundle("plugin"),
   contractVersion: defineNumber(1, CONTRACT_VERSION),
-  codeHash: defineString("99a56a3044fe", "source")
+  codeHash: defineString("06632f20bba2", "source")
 });
 function sameRuntimeContract(a, b) {
   if (!a || !b)
@@ -15429,19 +15439,6 @@ function atomicWriteText(path, content, options = {}) {
 function atomicWriteJson(path, value, options = {}) {
   atomicWriteText(path, JSON.stringify(value, null, 2) + `
 `, options);
-}
-
-// src/env-utils.ts
-function parsePositiveIntEnv(name, fallback, log = () => {}, env = process.env) {
-  const raw = env[name];
-  if (raw == null || raw === "")
-    return fallback;
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > Number.MAX_SAFE_INTEGER) {
-    log(`Invalid ${name}=${JSON.stringify(raw)} (must be a positive integer within ` + `Number.MAX_SAFE_INTEGER); falling back to ${fallback}`);
-    return fallback;
-  }
-  return parsed;
 }
 
 // src/process-lifecycle.ts
